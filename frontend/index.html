@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Agrovision AI</title>
+
+<style>
+* { box-sizing: border-box; transition: all 0.25s ease; }
+
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #f4fbf7;
+  color: #1b4332;
+  margin: 0;
+}
+
+.title { text-align: center; padding: 30px 20px 10px; }
+
+.container { display: flex; flex-direction: column; gap: 25px; padding: 20px 40px; }
+
+.box {
+  background: #ffffff;
+  border: 3px solid #2d6a4f;
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 8px 25px rgba(46,125,50,0.15);
+}
+
+.upload-section { display: flex; gap: 30px; }
+.left { width: 40%; }
+.right { width: 60%; }
+
+input[type="file"] {
+  border: 1.5px solid #40916c;
+  padding: 8px;
+  border-radius: 8px;
+  background: #f1faee;
+  flex: 1;
+}
+
+button {
+  padding: 10px 18px;
+  background: linear-gradient(135deg, #2d6a4f, #40916c);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+#previewImg {
+  display: none;
+  max-width: 100%;
+  margin-top: 15px;
+  border-radius: 10px;
+  border: 3px solid #2d6a4f;
+}
+
+.result-card {
+  background: #edfdf3;
+  border-left: 5px solid #2d6a4f;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.remedy-container { display: flex; gap: 20px; }
+
+.remedy-box {
+  flex: 1;
+  background: #f1faee;
+  padding: 15px;
+  border-radius: 10px;
+}
+
+@media (max-width:768px){
+  .upload-section { flex-direction: column; }
+  .left, .right { width: 100%; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="title">
+  <h1>🌿 Agrovision AI</h1>
+  <h3>Leaf Disease Detection System</h3>
+</div>
+
+<div class="container">
+
+<div class="box">
+  <h3>🔍 Leaf Disease Detection</h3>
+
+  <input type="file" id="leafImage">
+  <button onclick="analyze()">Analyze</button>
+
+  <img id="previewImg">
+
+  <div id="result">Upload image to analyze...</div>
+</div>
+
+<div class="box">
+  <h3>💊 Remedies</h3>
+  <div class="remedy-container">
+    <div class="remedy-box">
+      <h4>Organic</h4>
+      <p id="organicRemedy"></p>
+    </div>
+    <div class="remedy-box">
+      <h4>Chemical</h4>
+      <p id="chemicalRemedy"></p>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+
+// ✅ AUTO detect API (local vs deployed)
+const API =
+  window.location.hostname === "127.0.0.1" ||
+  window.location.hostname === "localhost"
+    ? "http://127.0.0.1:5000"
+    : "https://ai-project-juky.onrender.com";
+function analyze(){
+  const file = document.getElementById("leafImage").files[0];
+  if(!file) return alert("Upload image!");
+
+  const img = document.getElementById("previewImg");
+  img.src = URL.createObjectURL(file);
+  img.style.display = "block";
+
+  document.getElementById("result").innerHTML = "⏳ Analyzing...";
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  fetch("https://ai-project-juky.onrender.com/predict", {
+    method: "POST",
+    body: formData
+  })
+  .then(res => res.json())
+  .then(data => {
+    if(data.error){
+      document.getElementById("result").innerHTML = `❌ ${data.error}`;
+      return;
+    }
+
+    document.getElementById("result").innerHTML = `
+      <div class="result-card">Disease: ${data.disease}</div>
+      <div class="result-card">Confidence: ${data.confidence}%</div>
+      <div class="result-card">Affected: ${data.affected}%</div>
+      <div class="result-card">Reason: ${data.reason}</div>
+    `;
+
+    document.getElementById("organicRemedy").innerText = data.organic;
+    document.getElementById("chemicalRemedy").innerText = data.chemical;
+  })
+  .catch(err => {
+    console.error(err);
+    document.getElementById("result").innerHTML = "❌ Cannot connect to server";
+  });
+}
